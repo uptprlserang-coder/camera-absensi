@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width,
+             initial-scale=1,
+             maximum-scale=1,
+             user-scalable=no"
+  >
+
+  <title>Ambil Foto</title>
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: Arial, sans-serif;
+    }
+
+    .camera-page {
+      position: fixed;
+      inset: 0;
+
+      width: 100vw;
+      height: 100dvh;
+
+      background: #000;
+
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* =========================
+       HEADER
+    ========================= */
+
+    .camera-header {
+      position: absolute;
+      z-index: 10;
+
+      top: 0;
+      left: 0;
+      right: 0;
+
+      padding:
+        max(14px, env(safe-area-inset-top))
+        16px
+        14px
+        16px;
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      color: #fff;
+
+      background:
+        linear-gradient(
+          rgba(0,0,0,.65),
+          transparent
+        );
+    }
+
+    .title {
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      opacity: .8;
+      margin-top: 3px;
+    }
+
+    /* =========================
+       VIDEO
+    ========================= */
+
+    #video {
+      position: absolute;
+
+      inset: 0;
+
+      width: 100%;
+      height: 100%;
+
+      object-fit: cover;
+
+      background: #000;
+    }
+
+    /* =========================
+       OVERLAY
+    ========================= */
+
+    .face-frame {
+      position: absolute;
+
+      left: 50%;
+      top: 50%;
+
+      transform: translate(-50%, -50%);
+
+      width: min(72vw, 360px);
+      height: min(92vw, 460px);
+
+      border: 3px solid rgba(255,255,255,.85);
+
+      border-radius: 45%;
+
+      box-shadow:
+        0 0 0 9999px rgba(0,0,0,.30);
+
+      pointer-events: none;
+    }
+
+    /* =========================
+       INFO
+    ========================= */
+
+    .camera-info {
+      position: absolute;
+
+      left: 16px;
+      right: 16px;
+
+      bottom: 125px;
+
+      z-index: 10;
+
+      color: #fff;
+
+      text-align: center;
+
+      text-shadow:
+        0 1px 3px #000;
+    }
+
+    .camera-info strong {
+      display: block;
+      font-size: 17px;
+    }
+
+    .camera-info span {
+      display: block;
+      font-size: 13px;
+      margin-top: 4px;
+      opacity: .9;
+    }
+
+    /* =========================
+       BUTTON AREA
+    ========================= */
+
+    .controls {
+
+      position: absolute;
+
+      z-index: 20;
+
+      left: 0;
+      right: 0;
+      bottom: 0;
+
+      padding:
+        15px
+        20px
+        max(20px, env(safe-area-inset-bottom));
+
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+
+      background:
+        linear-gradient(
+          transparent,
+          rgba(0,0,0,.85)
+        );
+    }
+
+    button {
+
+      border: 0;
+
+      min-height: 52px;
+
+      padding: 0 25px;
+
+      border-radius: 999px;
+
+      font-size: 15px;
+      font-weight: 700;
+
+      cursor: pointer;
+    }
+
+    #captureBtn {
+      background: #fff;
+      color: #111;
+
+      min-width: 180px;
+    }
+
+    #retakeBtn {
+      display: none;
+
+      background: #444;
+      color: #fff;
+    }
+
+    #usePhotoBtn {
+      display: none;
+
+      background: #fff;
+      color: #111;
+
+      min-width: 150px;
+    }
+
+    /* =========================
+       PREVIEW
+    ========================= */
+
+    #preview {
+      display: none;
+
+      position: absolute;
+
+      inset: 0;
+
+      width: 100%;
+      height: 100%;
+
+      object-fit: contain;
+
+      background: #000;
+
+      z-index: 15;
+    }
+
+    /* =========================
+       ERROR
+    ========================= */
+
+    #errorBox {
+
+      display: none;
+
+      position: absolute;
+
+      z-index: 50;
+
+      left: 20px;
+      right: 20px;
+      top: 50%;
+
+      transform: translateY(-50%);
+
+      padding: 20px;
+
+      border-radius: 16px;
+
+      background: rgba(255,255,255,.96);
+
+      color: #222;
+
+      text-align: center;
+
+      line-height: 1.5;
+    }
+
+    #errorBox strong {
+      display: block;
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    /* =========================
+       DESKTOP
+    ========================= */
+
+    @media (min-width: 768px) {
+
+      .camera-page {
+        max-width: 900px;
+        margin: auto;
+
+        box-shadow:
+          0 0 40px rgba(0,0,0,.5);
+      }
+
+      #video {
+        object-fit: contain;
+      }
+
+      .camera-info {
+        bottom: 120px;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+<div class="camera-page">
+
+  <div class="camera-header">
+
+    <div>
+      <div class="title">
+        Foto Selfie
+      </div>
+
+      <div
+        class="subtitle"
+        id="employeeInfo">
+        Memuat...
+      </div>
+    </div>
+
+  </div>
+
+
+  <video
+    id="video"
+    autoplay
+    playsinline
+    muted>
+  </video>
+
+
+  <img
+    id="preview"
+    alt="Preview foto">
+
+
+  <div class="face-frame"></div>
+
+
+  <div class="camera-info">
+
+    <strong>
+      Posisikan wajah di dalam frame
+    </strong>
+
+    <span>
+      Pastikan wajah terlihat jelas
+    </span>
+
+  </div>
+
+
+  <div
+    id="errorBox">
+  </div>
+
+
+  <div class="controls">
+
+    <button
+      id="captureBtn">
+      📷 Ambil Foto
+    </button>
+
+    <button
+      id="retakeBtn">
+      Ulangi
+    </button>
+
+    <button
+      id="usePhotoBtn">
+      Gunakan Foto
+    </button>
+
+  </div>
+
+
+  <canvas
+    id="canvas"
+    style="display:none;">
+  </canvas>
+
+</div>
+
+
+<script>
+
+let stream = null;
+
+let photoData = null;
+
+const video =
+  document.getElementById('video');
+
+const preview =
+  document.getElementById('preview');
+
+const canvas =
+  document.getElementById('canvas');
+
+const captureBtn =
+  document.getElementById('captureBtn');
+
+const retakeBtn =
+  document.getElementById('retakeBtn');
+
+const usePhotoBtn =
+  document.getElementById('usePhotoBtn');
+
+const errorBox =
+  document.getElementById('errorBox');
+
+const employeeInfo =
+  document.getElementById('employeeInfo');
+
+
+/* ==================================
+   PARAMETER DARI HALAMAN ABSENSI
+================================== */
+
+const params =
+  new URLSearchParams(
+    window.location.search
+  );
+
+const employee =
+  params.get('employee') || '';
+
+const type =
+  params.get('type') || '';
+
+employeeInfo.textContent =
+  employee +
+  (type ? ' • ' + type : '');
+
+
+/* ==================================
+   BUKA KAMERA
+================================== */
+
+async function startCamera() {
+
+  try {
+
+    stream =
+      await navigator
+        .mediaDevices
+        .getUserMedia({
+
+          video: {
+            facingMode: {
+              ideal: 'user'
+            },
+
+            width: {
+              ideal: 1280
+            },
+
+            height: {
+              ideal: 720
+            }
+          },
+
+          audio: false
+
+        });
+
+
+    video.srcObject =
+      stream;
+
+    await video.play();
+
+
+  } catch (error) {
+
+    console.error(
+      'Camera error:',
+      error
+    );
+
+    showError(
+      error
+    );
+
+  }
+
+}
+
+
+/* ==================================
+   AMBIL FOTO
+================================== */
+
+captureBtn.addEventListener(
+  'click',
+  function () {
+
+    if (
+      !video.videoWidth ||
+      !video.videoHeight
+    ) {
+
+      alert(
+        'Kamera belum siap.'
+      );
+
+      return;
+    }
+
+
+    const width =
+      video.videoWidth;
+
+    const height =
+      video.videoHeight;
+
+
+    canvas.width =
+      width;
+
+    canvas.height =
+      height;
+
+
+    const ctx =
+      canvas.getContext('2d');
+
+
+    ctx.drawImage(
+      video,
+      0,
+      0,
+      width,
+      height
+    );
+
+
+    photoData =
+      canvas.toDataURL(
+        'image/jpeg',
+        0.85
+      );
+
+
+    preview.src =
+      photoData;
+
+
+    preview.style.display =
+      'block';
+
+
+    document
+      .querySelector('.face-frame')
+      .style.display =
+      'none';
+
+
+    captureBtn.style.display =
+      'none';
+
+    retakeBtn.style.display =
+      'block';
+
+    usePhotoBtn.style.display =
+      'block';
+
+  }
+);
+
+
+/* ==================================
+   ULANGI
+================================== */
+
+retakeBtn.addEventListener(
+  'click',
+  function () {
+
+    photoData = null;
+
+    preview.style.display =
+      'none';
+
+    document
+      .querySelector('.face-frame')
+      .style.display =
+      'block';
+
+    captureBtn.style.display =
+      'block';
+
+    retakeBtn.style.display =
+      'none';
+
+    usePhotoBtn.style.display =
+      'none';
+
+  }
+);
+
+
+/* ==================================
+   GUNAKAN FOTO
+================================== */
+
+usePhotoBtn.addEventListener(
+  'click',
+  function () {
+
+    if (!photoData) {
+
+      alert(
+        'Foto belum tersedia.'
+      );
+
+      return;
+    }
+
+
+    // Kirim foto kembali
+    // ke halaman GAS yang membuka kamera
+
+    if (
+      window.opener
+    ) {
+
+      window.opener.postMessage(
+
+        {
+          type:
+            'ATTENDANCE_PHOTO',
+
+          photo:
+            photoData,
+
+          employee:
+            employee,
+
+          attendanceType:
+            type
+        },
+
+        '*'
+
+      );
+
+
+      stopCamera();
+
+      window.close();
+
+
+    } else {
+
+      alert(
+        'Halaman absensi utama tidak ditemukan. Silakan buka kamera dari tombol Ambil Selfie pada halaman absensi.'
+      );
+
+    }
+
+  }
+);
+
+
+/* ==================================
+   STOP CAMERA
+================================== */
+
+function stopCamera() {
+
+  if (stream) {
+
+    stream
+      .getTracks()
+      .forEach(
+        track =>
+          track.stop()
+      );
+
+    stream = null;
+
+  }
+
+}
+
+
+/* ==================================
+   ERROR
+================================== */
+
+function showError(error) {
+
+  errorBox.style.display =
+    'block';
+
+  errorBox.innerHTML =
+
+    '<strong>Kamera tidak dapat dibuka</strong>' +
+
+    '<div>' +
+
+    'Error: ' +
+    (error.name || '-') +
+
+    '<br>' +
+
+    (error.message || '-') +
+
+    '</div>';
+
+}
+
+
+/* ==================================
+   START
+================================== */
+
+startCamera();
+
+</script>
+
+</body>
+
+</html>
